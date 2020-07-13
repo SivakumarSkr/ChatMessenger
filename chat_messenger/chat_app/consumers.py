@@ -1,5 +1,8 @@
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 
+from chat_app.models import Message
+from chat_app.utils import get_room, create_message
+
 
 class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
@@ -22,7 +25,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         if command == 'join':
             await self.join_room(content['room'])
         elif command == 'send':
-            await self.send_json(content['room'], content['message'])
+            await self.send_room(content['room'], content['message'])
         elif command == 'leave':
             await self.leave_room(content['room'])
 
@@ -65,6 +68,12 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         )
 
     async def send_room(self, room_id, message):
+        room = await get_room(self.room_name)
+        message = await create_message(
+            sender=self.scope['user'],
+            text=message,
+            room=room
+        )
         await self.channel_layer.group_send(
             self.room_group_name,
             {
